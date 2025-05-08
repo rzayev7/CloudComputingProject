@@ -27,6 +27,8 @@ Compute Engine VM: Runs periodic batch jobs (e.g., task cleanup)
 
 Load Balancer: Routes HTTPS traffic to GKE cluster
 
+![alt text](<Architecture Diagram.png>)
+
 📊 Performance Testing
 Simulated using Locust
 
