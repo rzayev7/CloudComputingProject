@@ -1,0 +1,13 @@
+{
+  "name": "task-events-function",
+  "version": "1.0.0",
+  "description": "Cloud Function to process task events",
+  "main": "index.js",
+  "engines": {
+    "node": "18"
+  },
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.2.0",
+    "nodemailer": "^6.9.0"
+  }
+} 
