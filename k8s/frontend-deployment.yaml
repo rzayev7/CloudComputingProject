@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  namespace: task-manager
+  labels:
+    app: frontend
+spec:
+  replicas: 2 # Start with 2 replicas for the frontend
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: gcr.io/YOUR_GOOGLE_CLOUD_PROJECT/frontend:v1 # <-- IMPORTANT: Replace YOUR_GOOGLE_CLOUD_PROJECT
+        ports:
+        - containerPort: 80 # Nginx listens on port 80 by default
+        resources:
+          requests:
+            cpu: "50m"   # Request 0.05 CPU
+            memory: "64Mi"  # Request 64 MB of Memory
+          limits:
+            cpu: "200m"  # Limit to 0.2 CPU
+            memory: "128Mi" # Limit to 128 MB of Memory 

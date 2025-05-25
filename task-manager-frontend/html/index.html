@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        ul { list-style-type: none; padding: 0; }
+        li { padding: 10px; border-bottom: 1px #eee solid; }
+        li:last-child { border-bottom: none; }
+        .task-input { display: flex; margin-bottom: 20px; }
+        .task-input input[type="text"] { flex-grow: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .task-input button { padding: 10px 15px; background: #5cb85c; color: white; border: none; margin-left: 10px; border-radius: 4px; cursor: pointer; }
+        .task-input button:hover { background: #4cae4c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Task Manager</h1>
+        <div class="task-input">
+            <input type="text" id="taskTitle" placeholder="Enter task title...">
+            <button onclick="addTask()">Add Task</button>
+        </div>
+        <ul id="taskList">
+            <!-- Tasks will be loaded here by JavaScript -->
+            <li>Sample Task 1 - Complete report <button onclick="deleteTask(this)">Delete</button></li>
+            <li>Sample Task 2 - Prepare presentation <button onclick="deleteTask(this)">Delete</button></li>
+        </ul>
+    </div>
+
+    <script>
+        // Basic frontend logic (placeholders)
+        // In a real app, this would interact with your backend API.
+
+        function getBackendUrl() {
+            // This would ideally be configured, perhaps from an environment variable
+            // or by assuming the backend is served relative to the frontend.
+            // For now, let's assume it's on the same host, different port or path.
+            // Placeholder:
+            return 'http://<your-backend-service-ip-or-dns>/api';
+        }
+
+        async function fetchTasks() {
+            const taskList = document.getElementById('taskList');
+            taskList.innerHTML = '<li>Loading tasks...</li>';
+            // try {
+            //     const response = await fetch(`${getBackendUrl()}/tasks`);
+            //     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            //     const tasks = await response.json();
+            //     renderTasks(tasks);
+            // } catch (error) {
+            //     taskList.innerHTML = '<li>Error loading tasks. Is the backend running?</li>';
+            //     console.error("Failed to fetch tasks:", error);
+            // }
+            // Simulating task loading for now:
+            setTimeout(() => renderTasks([
+                { id: 1, title: "Review project requirements" },
+                { id: 2, title: "Set up database" }
+            ]), 500);
+        }
+
+        function renderTasks(tasks) {
+            const taskList = document.getElementById('taskList');
+            taskList.innerHTML = ''; // Clear current tasks
+            if (tasks.length === 0) {
+                taskList.innerHTML = '<li>No tasks yet. Add one!</li>';
+                return;
+            }
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.textContent = task.title;
+                
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.style.marginLeft = '10px';
+                deleteButton.onclick = function() { deleteTask(task.id, li); }; // Pass task id and li element
+                
+                li.appendChild(deleteButton);
+                taskList.appendChild(li);
+            });
+        }
+
+        async function addTask() {
+            const titleInput = document.getElementById('taskTitle');
+            const title = titleInput.value.trim();
+            if (!title) {
+                alert('Task title cannot be empty!');
+                return;
+            }
+            // try {
+            //     const response = await fetch(`${getBackendUrl()}/tasks`, {
+            //         method: 'POST',
+            //         headers: { 'Content-Type': 'application/json' },
+            //         body: JSON.stringify({ title: title, description: '' }) // Add description if your API needs it
+            //     });
+            //     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            //     titleInput.value = ''; // Clear input
+            //     fetchTasks(); // Refresh task list
+            // } catch (error) {
+            //     alert('Failed to add task. Check console.');
+            //     console.error("Failed to add task:", error);
+            // }
+            console.log("Simulating add task:", title);
+            titleInput.value = '';
+             // Add to UI directly for simulation
+            const taskList = document.getElementById('taskList');
+            const li = document.createElement('li');
+            li.textContent = title;
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Delete';
+            deleteButton.style.marginLeft = '10px';
+            deleteButton.onclick = function() { deleteTask(null, li); }; // Null ID for simulated task
+            li.appendChild(deleteButton);
+            if (taskList.firstChild && taskList.firstChild.textContent === 'No tasks yet. Add one!') {
+                taskList.innerHTML = '';
+            }
+            taskList.appendChild(li);
+        }
+
+        function deleteTask(taskId, listItemElement) {
+            // if (taskId) { // If it's a real task with an ID
+            //     try {
+            //         // const response = await fetch(`${getBackendUrl()}/tasks/${taskId}`, { method: 'DELETE' });
+            //         // if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            //         // fetchTasks(); // Refresh list
+            //     } catch (error) {
+            //         alert('Failed to delete task. Check console.');
+            //         console.error("Failed to delete task:", error);
+            //         return; // Don't remove from UI if API call failed
+            //     }
+            // }
+            // For simulation, or after successful API call:
+            listItemElement.remove();
+            const taskList = document.getElementById('taskList');
+            if (!taskList.hasChildNodes()) {
+                taskList.innerHTML = '<li>No tasks yet. Add one!</li>';
+            }
+            console.log("Simulating delete task:", taskId || "Simulated Task");
+        }
+
+        // Load tasks when the page loads
+        document.addEventListener('DOMContentLoaded', fetchTasks);
+    </script>
+</body>
+</html> 

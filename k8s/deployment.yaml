@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: task-manager-backend
+  namespace: task-manager
+  labels:
+    app: backend
+spec:
+  replicas: 3 # Start with 3 replicas as per your report draft
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: task-manager-backend
+        image: gcr.io/YOUR_GOOGLE_CLOUD_PROJECT/backend:v1 # <-- IMPORTANT: Replace YOUR_GOOGLE_CLOUD_PROJECT
+        ports:
+        - containerPort: 8060 # Port your Node.js app listens on
+        env:
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: DB_HOST
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: DB_USER
+        - name: DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: DB_PASS
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: db-secrets
+              key: DB_NAME
+        # Add other environment variables like LOGIN_URL if needed by your backend
+        # - name: LOGIN_URL
+        #   value: "YOUR_CLOUD_FUNCTION_LOGIN_URL"
+        resources:
+          requests:
+            cpu: "100m" # Request 0.1 CPU
+            memory: "128Mi" # Request 128 MB of Memory
+          limits:
+            cpu: "500m" # Limit to 0.5 CPU
+            memory: "512Mi" # Limit to 512 MB of Memory 

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: task-manager-svc # Referenced in your Locust command
+  namespace: task-manager
+  labels:
+    app: backend
+spec:
+  type: LoadBalancer
+  selector:
+    app: backend
+  ports:
+  - protocol: TCP
+    port: 80 # External port the LB listens on
+    targetPort: 8060 # Port on the backend pods 
