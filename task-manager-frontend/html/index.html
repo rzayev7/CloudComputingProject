@@ -20,46 +20,135 @@
 <body>
     <div class="container">
         <h1>Task Manager</h1>
+
+        <div id="authContainer">
+            <h2>Login</h2>
+            <input type="email" id="email" placeholder="Email" style="margin-bottom: 10px; padding: 10px; width: calc(100% - 22px); border: 1px solid #ddd; border-radius: 4px;">
+            <input type="password" id="password" placeholder="Password" style="margin-bottom: 10px; padding: 10px; width: calc(100% - 22px); border: 1px solid #ddd; border-radius: 4px;">
+            <button onclick="loginUser()" style="padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Login</button>
+            <p id="authMessage" style="color: red; text-align: center; margin-top: 10px;"></p>
+        </div>
+
+        <div id="taskManagerContainer" style="display:none;">
+            <button id="logoutButton" onclick="logoutUser()" style="float:right; margin-bottom:10px; padding: 8px 12px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Logout</button>
+            <div style="clear:both;"></div>
         <div class="task-input">
             <input type="text" id="taskTitle" placeholder="Enter task title...">
             <button onclick="addTask()">Add Task</button>
         </div>
         <ul id="taskList">
             <!-- Tasks will be loaded here by JavaScript -->
-            <li>Sample Task 1 - Complete report <button onclick="deleteTask(this)">Delete</button></li>
-            <li>Sample Task 2 - Prepare presentation <button onclick="deleteTask(this)">Delete</button></li>
         </ul>
+        </div>
     </div>
 
     <script>
-        // Basic frontend logic (placeholders)
-        // In a real app, this would interact with your backend API.
+        // Basic frontend logic
 
         function getBackendUrl() {
-            // This would ideally be configured, perhaps from an environment variable
-            // or by assuming the backend is served relative to the frontend.
-            // For now, let's assume it's on the same host, different port or path.
-            // Placeholder:
-            return 'http://<your-backend-service-ip-or-dns>/api';
+            // Replace '<your-backend-service-ip-or-dns-or-service-name>'
+            // with your actual backend API endpoint.
+            // For example: 'http://104.154.16.117/api'
+            return 'http://104.154.16.117/api'; // Using the identified backend IP
+        }
+
+        function updateUIVisibility(isLoggedIn) {
+            const authContainer = document.getElementById('authContainer');
+            const taskManagerContainer = document.getElementById('taskManagerContainer');
+            if (isLoggedIn) {
+                authContainer.style.display = 'none';
+                taskManagerContainer.style.display = 'block';
+            } else {
+                authContainer.style.display = 'block';
+                taskManagerContainer.style.display = 'none';
+                document.getElementById('taskList').innerHTML = ''; // Clear tasks on logout
+                document.getElementById('authMessage').textContent = ''; // Clear auth messages
+            }
+        }
+
+        async function loginUser() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const authMessage = document.getElementById('authMessage');
+            authMessage.textContent = ''; // Clear previous messages
+
+            if (!email || !password) {
+                authMessage.textContent = 'Email and password are required.';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${getBackendUrl()}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || `HTTP error! status: ${response.status}`);
+                }
+
+                if (data.token) {
+                    localStorage.setItem('authToken', data.token);
+                    updateUIVisibility(true);
+                    fetchTasks();
+                } else {
+                    authMessage.textContent = data.message || 'Login failed: No token received.';
+                }
+            } catch (error) {
+                authMessage.textContent = `Login error: ${error.message}`;
+                console.error("Login failed:", error);
+            }
+        }
+
+        function logoutUser() {
+            localStorage.removeItem('authToken');
+            updateUIVisibility(false);
+        }
+
+        function checkLoginState() {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                updateUIVisibility(true);
+                fetchTasks(); // Attempt to fetch tasks if token exists
+            } else {
+                updateUIVisibility(false);
+            }
+        }
+        
+        // Function to handle unauthorized access (e.g. token expired)
+        function handleUnauthorized() {
+            alert("Session expired or unauthorized. Please log in again.");
+            logoutUser();
         }
 
         async function fetchTasks() {
+            const token = localStorage.getItem('authToken');
             const taskList = document.getElementById('taskList');
+            if (!token) {
+                taskList.innerHTML = '<li>Please log in to manage tasks.</li>';
+                // Optionally call logoutUser() or updateUIVisibility(false)
+                return;
+            }
+
             taskList.innerHTML = '<li>Loading tasks...</li>';
-            // try {
-            //     const response = await fetch(`${getBackendUrl()}/tasks`);
-            //     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            //     const tasks = await response.json();
-            //     renderTasks(tasks);
-            // } catch (error) {
-            //     taskList.innerHTML = '<li>Error loading tasks. Is the backend running?</li>';
-            //     console.error("Failed to fetch tasks:", error);
-            // }
-            // Simulating task loading for now:
-            setTimeout(() => renderTasks([
-                { id: 1, title: "Review project requirements" },
-                { id: 2, title: "Set up database" }
-            ]), 500);
+            try {
+                const response = await fetch(`${getBackendUrl()}/tasks`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.status === 401 || response.status === 403) {
+                    handleUnauthorized();
+                    return;
+                }
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const tasks = await response.json();
+                renderTasks(tasks);
+            } catch (error) {
+                taskList.innerHTML = '<li>Error loading tasks. Is the backend running and the URL correct?</li>';
+                console.error("Failed to fetch tasks:", error);
+            }
         }
 
         function renderTasks(tasks) {
@@ -72,6 +161,7 @@
             tasks.forEach(task => {
                 const li = document.createElement('li');
                 li.textContent = task.title;
+                li.setAttribute('data-task-id', task.id); // Store task ID
                 
                 const deleteButton = document.createElement('button');
                 deleteButton.textContent = 'Delete';
@@ -84,65 +174,76 @@
         }
 
         async function addTask() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                alert('Please log in to add tasks.');
+                return;
+            }
+
             const titleInput = document.getElementById('taskTitle');
             const title = titleInput.value.trim();
             if (!title) {
                 alert('Task title cannot be empty!');
                 return;
             }
-            // try {
-            //     const response = await fetch(`${getBackendUrl()}/tasks`, {
-            //         method: 'POST',
-            //         headers: { 'Content-Type': 'application/json' },
-            //         body: JSON.stringify({ title: title, description: '' }) // Add description if your API needs it
-            //     });
-            //     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            //     titleInput.value = ''; // Clear input
-            //     fetchTasks(); // Refresh task list
-            // } catch (error) {
-            //     alert('Failed to add task. Check console.');
-            //     console.error("Failed to add task:", error);
-            // }
-            console.log("Simulating add task:", title);
-            titleInput.value = '';
-             // Add to UI directly for simulation
-            const taskList = document.getElementById('taskList');
-            const li = document.createElement('li');
-            li.textContent = title;
-            const deleteButton = document.createElement('button');
-            deleteButton.textContent = 'Delete';
-            deleteButton.style.marginLeft = '10px';
-            deleteButton.onclick = function() { deleteTask(null, li); }; // Null ID for simulated task
-            li.appendChild(deleteButton);
-            if (taskList.firstChild && taskList.firstChild.textContent === 'No tasks yet. Add one!') {
-                taskList.innerHTML = '';
+            try {
+                const response = await fetch(`${getBackendUrl()}/tasks`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ title: title, description: '' })
+                });
+                if (response.status === 401 || response.status === 403) {
+                    handleUnauthorized();
+                    return;
+                }
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                titleInput.value = ''; // Clear input
+                fetchTasks(); // Refresh task list
+            } catch (error) {
+                alert('Failed to add task. Check console.');
+                console.error("Failed to add task:", error);
             }
-            taskList.appendChild(li);
         }
 
-        function deleteTask(taskId, listItemElement) {
-            // if (taskId) { // If it's a real task with an ID
-            //     try {
-            //         // const response = await fetch(`${getBackendUrl()}/tasks/${taskId}`, { method: 'DELETE' });
-            //         // if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            //         // fetchTasks(); // Refresh list
-            //     } catch (error) {
-            //         alert('Failed to delete task. Check console.');
-            //         console.error("Failed to delete task:", error);
-            //         return; // Don't remove from UI if API call failed
-            //     }
-            // }
-            // For simulation, or after successful API call:
+        async function deleteTask(taskId, listItemElement) {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                alert('Please log in to delete tasks.');
+                return;
+            }
+
+            if (!taskId) {
+                console.error("Cannot delete task without an ID.");
+                listItemElement.remove(); // Remove from UI anyway for simulated/malformed items
+                return;
+            }
+            try {
+                const response = await fetch(`${getBackendUrl()}/tasks/${taskId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.status === 401 || response.status === 403) {
+                    handleUnauthorized();
+                    return;
+                }
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             listItemElement.remove();
             const taskList = document.getElementById('taskList');
             if (!taskList.hasChildNodes()) {
                 taskList.innerHTML = '<li>No tasks yet. Add one!</li>';
             }
-            console.log("Simulating delete task:", taskId || "Simulated Task");
+            } catch (error) {
+                alert('Failed to delete task. Check console.');
+                console.error("Failed to delete task:", error);
+                return; // Don't remove from UI if API call failed, unless handled differently
+            }
         }
 
-        // Load tasks when the page loads
-        document.addEventListener('DOMContentLoaded', fetchTasks);
+        // Load tasks or show login when the page loads
+        document.addEventListener('DOMContentLoaded', checkLoginState);
     </script>
 </body>
 </html> 
